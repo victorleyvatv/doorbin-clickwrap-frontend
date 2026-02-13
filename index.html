@@ -53,10 +53,8 @@
         <!-- PAGE 1: SERVICE OVERVIEW & ACCEPTANCE -->
         <div id="page-1" class="fade-in">
             <header class="flex flex-col items-center mb-12 text-center">
-                <!-- Se ha corregido la Base64 del logo a un PNG de 1x1 píxel transparente. 
-                     Deberás reemplazar este `src` con la Base64 de tu logo real o una URL. -->
                 <img 
-                    src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=" 
+                    src="https://i.ibb.co/7NyScgsQ/doorbin-icon-new.png" 
                     alt="Doorbin Waste Logo" 
                     class="w-24 h-24 object-contain mb-4"
                 />
@@ -79,18 +77,17 @@
             </section>
 
             <form id="acceptance-form" method="POST" action="https://pagos.app.n8n.cloud/webhook/clickwrap/accept">
-                <!-- Hidden fields - values extracted from URL and passed to n8n POST -->
-                <input type="hidden" name="client_name" id="hid-client-name">
-                <input type="hidden" name="property_id" id="hid-property-id">
-                <input type="hidden" name="property_name" id="hid-property-name">
-                <input type="hidden" name="property_address" id="hid-property-address">
-                <input type="hidden" name="property_city" id="hid-property-city">
-                <input type="hidden" name="property_state" id="hid-property-state">
-                <input type="hidden" name="property_zip_code" id="hid-property-zip-code">
-                <input type="hidden" name="total_units" id="hid-total-units">
+                <!-- Hidden fields - values extracted from URL -->
+                <input type="hidden" name="client" id="hid-client">
+                <input type="hidden" name="property" id="hid-property">
+                <input type="hidden" name="units" id="hid-units">
+                <input type="hidden" name="service_frequency" id="hid-frequency">
                 <input type="hidden" name="start_date" id="hid-start-date">
-                <input type="hidden" name="service_frequency" id="hid-service-frequency">
-                <input type="hidden" name="monthly_rate" id="hid-monthly-rate">
+                <input type="hidden" name="monthly_rate" id="hid-rate">
+                <!-- Nuevos Hidden fields añadidos -->
+                <input type="hidden" name="service_provider_address" id="hid-service-provider-address">
+                <input type="hidden" name="client_address" id="hid-client-address">
+                <input type="hidden" name="client_state" id="hid-client-state">
                 <input type="hidden" name="initial_term_months" id="hid-initial-term-months">
                 <input type="hidden" name="termination_notice_days" id="hid-termination-notice-days">
                 <input type="hidden" name="service_window_start_time" id="hid-service-window-start-time">
@@ -124,7 +121,7 @@
             <header class="flex justify-between items-center mb-10 pb-6 border-b border-gray-800">
                 <div class="flex items-center space-x-4">
                     <img 
-                        src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=" 
+                        src="https://i.ibb.co/7NyScgsQ/doorbin-icon-new.png" 
                         alt="Logo" 
                         class="w-12 h-12 object-contain"
                     />
@@ -146,41 +143,28 @@
     </div>
 
     <script>
-        // --- CONSTANTES GLOBALES (para Doorbin Waste LLC - SERVICE PROVIDER) ---
-        const SERVICE_PROVIDER_DETAILS = {
-            name: 'Doorbin Waste LLC',
-            address_line: '8601 SW 107th Ave Suite 100', // EJEMPLO: Reemplazar con la dirección real de Doorbin Waste
-            city: 'Miami',
-            state: 'FL',
-            zip_code: '33176'
-        };
-
-        // --- Data Store: Define todos los campos que el contrato puede necesitar ---
+        // Data Store
         const contractData = {
-            // Datos del CLIENTE/PROPIEDAD (de Airtable/URL)
-            client_name: 'Pending Client', // Corresponde a "Client Name (from Client)"
-            property_id: 'Pending ID', // Para Airtable lookup
-            property_name: 'Pending Property', // Corresponde a "Property Name"
-            property_address: 'Pending Address', // Corresponde a "Property Address"
-            property_city: 'Pending City', // Corresponde a "City"
-            property_state: 'Pending State', // Corresponde a "State"
-            property_zip_code: 'Pending ZIP', // Corresponde a "ZIP Code"
-            total_units: 'Pending', // Corresponde a "Total Number of Units"
-            start_date: 'Pending', // Corresponde a "Start Date"
-
-            // Datos del Servicio/Contrato (podrían venir de Airtable o ser defaults)
-            service_frequency: '5x/week', // Default
-            monthly_rate: '0.00', // Default
-            initial_term_months: '12', // Default
-            termination_notice_days: '90', // Default
-            service_window_start_time: '6pm', // Default
-            service_window_end_time: '9pm', // Default
-            billing_day_of_month: '1', // Default
-            payment_terms_days: '15', // Default
-            grievance_resolution_hours: '48' // Default
+            client: 'Pending',
+            property: 'Pending',
+            units: 'Pending',
+            service_frequency: 'Pending',
+            start_date: 'Pending',
+            monthly_rate: 'Pending',
+            // --- Nuevas claves añadidas ---
+            service_provider_address: 'Pending',
+            client_address: 'Pending',
+            client_state: 'Pending',
+            initial_term_months: 'Pending',
+            termination_notice_days: 'Pending',
+            service_window_start_time: 'Pending',
+            service_window_end_time: 'Pending',
+            billing_day_of_month: 'Pending',
+            payment_terms_days: 'Pending',
+            grievance_resolution_hours: 'Pending'
         };
 
-        // --- UI State ---
+        // UI State
         const ui = {
             page1: document.getElementById('page-1'),
             page2: document.getElementById('page-2'),
@@ -188,100 +172,55 @@
             check2: document.getElementById('check-2'),
             submitBtn: document.getElementById('submit-btn'),
             errorMsg: document.getElementById('error-msg'),
-            termsContent: document.getElementById('terms-content'),
-            // Hidden fields para el POST (actualizados para incluir todos los campos relevantes)
-            hidClientName: document.getElementById('hid-client-name'),
-            hidPropertyId: document.getElementById('hid-property-id'),
-            hidPropertyName: document.getElementById('hid-property-name'),
-            hidPropertyAddress: document.getElementById('hid-property-address'),
-            hidPropertyCity: document.getElementById('hid-property-city'),
-            hidPropertyState: document.getElementById('hid-property-state'),
-            hidPropertyZipCode: document.getElementById('hid-property-zip-code'),
-            hidTotalUnits: document.getElementById('hid-total-units'),
-            hidStartDate: document.getElementById('hid-start-date'),
-            hidServiceFrequency: document.getElementById('hid-service-frequency'),
-            hidMonthlyRate: document.getElementById('hid-monthly-rate'),
-            hidInitialTermMonths: document.getElementById('hid-initial-term-months'),
-            hidTerminationNoticeDays: document.getElementById('hid-termination-notice-days'),
-            hidServiceWindowStartTime: document.getElementById('hid-service-window-start-time'),
-            hidServiceWindowEndTime: document.getElementById('hid-service-window-end-time'),
-            hidBillingDayOfMonth: document.getElementById('hid-billing-day-of-month'),
-            hidPaymentTermsDays: document.getElementById('hid-payment-terms-days'),
-            hidGrievanceResolutionHours: document.getElementById('hid-grievance-resolution-hours'),
+            termsContent: document.getElementById('terms-content')
         };
 
-        // --- Formatter utilities ---
+        // Formatter utilities
         const formatDisplayDate = (str) => {
             if (!str || str === 'Pending') return 'Pending';
-            // Asume formato YYYY-MM-DD para convertir a MM/DD/YYYY
-            const date = new Date(str + 'T00:00:00'); // Añade T00:00:00 para evitar problemas de zona horaria
-            if (isNaN(date.getTime())) return str; // Si no es una fecha válida, devuelve la original
-            return date.toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' });
+            const parts = str.split('-');
+            if (parts.length === 3) return `${parts[1]}/${parts[2]}/${parts[0]}`;
+            return str;
         };
-        
+
         const formatDisplayCurrency = (val) => {
             if (!val || val === 'Pending') return 'Pending';
-            const numeric = parseFloat(val.toString().replace(/[^0-9.]/g, ''));
+            const numeric = parseFloat(val.replace(/[^0-9.]/g, ''));
             if (isNaN(numeric)) return val;
             return '$' + numeric.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         };
 
-        // --- Initialize App ---
+        // Initialize App
         function init() {
             document.getElementById('year').textContent = new Date().getFullYear();
 
             // 1. Read URL Parameters
             const params = new URLSearchParams(window.location.search);
-            // Lista de todos los query parameters que esperamos
-            const paramKeys = [
-                'client_name', 'property_id', 'property_name', 'property_address', 'property_city',
-                'property_state', 'property_zip_code', 'total_units', 'start_date',
-                'service_frequency', 'monthly_rate', 'initial_term_months',
-                'termination_notice_days', 'service_window_start_time',
-                'service_window_end_time', 'billing_day_of_month', 'payment_terms_days',
-                'grievance_resolution_hours'
+            const keys = [
+                'client', 'property', 'units', 'service_frequency', 'start_date', 'monthly_rate',
+                'service_provider_address', 'client_address', 'client_state', 'initial_term_months',
+                'termination_notice_days', 'service_window_start_time', 'service_window_end_time',
+                'billing_day_of_month', 'payment_terms_days', 'grievance_resolution_hours'
             ];
-
-            paramKeys.forEach(key => {
+            keys.forEach(key => {
                 const val = params.get(key);
-                if (val) {
-                    // Decodifica para manejar espacios y caracteres especiales de la URL
-                    contractData[key] = decodeURIComponent(val.replace(/\+/g, ' '));
-                }
+                if (val) contractData[key] = val;
             });
 
-            // 2. Populate Form Hidden Fields (Asegúrate de que los IDs coincidan con los nuevos nombres)
-            // Esto rellena los hidden inputs del formulario con los datos cargados en contractData
-            if (ui.hidClientName) ui.hidClientName.value = contractData.client_name;
-            if (ui.hidPropertyId) ui.hidPropertyId.value = contractData.property_id;
-            if (ui.hidPropertyName) ui.hidPropertyName.value = contractData.property_name;
-            if (ui.hidPropertyAddress) ui.hidPropertyAddress.value = contractData.property_address;
-            if (ui.hidPropertyCity) ui.hidPropertyCity.value = contractData.property_city;
-            if (ui.hidPropertyState) ui.hidPropertyState.value = contractData.property_state;
-            if (ui.hidPropertyZipCode) ui.hidPropertyZipCode.value = contractData.property_zip_code;
-            if (ui.hidTotalUnits) ui.hidTotalUnits.value = contractData.total_units;
-            if (ui.hidStartDate) ui.hidStartDate.value = contractData.start_date;
-            if (ui.hidServiceFrequency) ui.hidServiceFrequency.value = contractData.service_frequency;
-            if (ui.hidMonthlyRate) ui.hidMonthlyRate.value = contractData.monthly_rate;
-            if (ui.hidInitialTermMonths) ui.hidInitialTermMonths.value = contractData.initial_term_months;
-            if (ui.hidTerminationNoticeDays) ui.hidTerminationNoticeDays.value = contractData.termination_notice_days;
-            if (ui.hidServiceWindowStartTime) ui.hidServiceWindowStartTime.value = contractData.service_window_start_time;
-            if (ui.hidServiceWindowEndTime) ui.hidServiceWindowEndTime.value = contractData.service_window_end_time;
-            if (ui.hidBillingDayOfMonth) ui.hidBillingDayOfMonth.value = contractData.billing_day_of_month;
-            if (ui.hidPaymentTermsDays) ui.hidPaymentTermsDays.value = contractData.payment_terms_days;
-            if (ui.hidGrievanceResolutionHours) ui.hidGrievanceResolutionHours.value = contractData.grievance_resolution_hours;
+            // 2. Populate Form Hidden Fields
+            Object.keys(contractData).forEach(key => {
+                const el = document.getElementById('hid-' + key.replace('_', '-'));
+                if (el) el.value = contractData[key];
+            });
 
-
-            // 3. Set Up Terms Content
+            // 3. Set Up Terms Content (Refined English version of the provided Spanish contract)
             generateTerms();
 
             // 4. Event Listeners
-            if (ui.check1) ui.check1.addEventListener('change', validateForm);
-            if (ui.check2) ui.check2.addEventListener('change', validateForm);
-            const linkToTermsBtn = document.getElementById('link-to-terms');
-            if (linkToTermsBtn) linkToTermsBtn.addEventListener('click', () => switchPage(2));
-            const backTo1Btn = document.getElementById('back-to-1');
-            if (backTo1Btn) backTo1Btn.addEventListener('click', () => switchPage(1));
+            ui.check1.addEventListener('change', validateForm);
+            ui.check2.addEventListener('change', validateForm);
+            document.getElementById('link-to-terms').addEventListener('click', () => switchPage(2));
+            document.getElementById('back-to-1').addEventListener('click', () => switchPage(1));
         }
 
         function validateForm() {
@@ -291,11 +230,11 @@
             if (isValid) {
                 ui.submitBtn.classList.remove('bg-gray-800', 'text-gray-600', 'cursor-not-allowed');
                 ui.submitBtn.classList.add('bg-accent-lime', 'text-[#121212]', 'hover:brightness-110');
-                if (ui.errorMsg) ui.errorMsg.classList.add('hidden');
+                ui.errorMsg.classList.add('hidden');
             } else {
                 ui.submitBtn.classList.add('bg-gray-800', 'text-gray-600', 'cursor-not-allowed');
                 ui.submitBtn.classList.remove('bg-accent-lime', 'text-[#121212]', 'hover:brightness-110');
-                if (ui.errorMsg) ui.errorMsg.classList.remove('hidden');
+                ui.errorMsg.classList.remove('hidden');
             }
         }
 
@@ -311,17 +250,16 @@
             }
         }
 
-        // --- generateTerms: Actualizado con todos los nuevos campos ---
         function generateTerms() {
             const termsTemplate = `
                 <div class="space-y-6">
                     <h2 class="text-white font-bold text-xl uppercase tracking-tight text-center border-b border-gray-800 pb-4">DOOR-TO-DOOR WASTE COLLECTION SERVICE AGREEMENT</h2>
                     
                     <p><strong>BETWEEN:</strong></p>
-                    <p><strong>${SERVICE_PROVIDER_DETAILS.name}</strong>, a limited liability company organized and registered under the laws of the State of Florida, with its business address at <strong>${SERVICE_PROVIDER_DETAILS.address_line}, ${SERVICE_PROVIDER_DETAILS.city}, ${SERVICE_PROVIDER_DETAILS.state} ${SERVICE_PROVIDER_DETAILS.zip_code}</strong>, hereinafter referred to as the <strong>"SERVICE PROVIDER"</strong>, specialized in door-to-door waste collection, recycling, and waste management in multi-family residential properties and condominiums.</p>
+                    <p><strong>Doorbin Waste LLC</strong>, a limited liability company organized and registered under the laws of the State of Florida, with its business address at **${contractData.service_provider_address}**, hereinafter referred to as the <strong>"SERVICE PROVIDER"</strong>, specialized in door-to-door waste collection, recycling, and waste management in multi-family residential properties and condominiums.</p>
                     
                     <p><strong>AND:</strong></p>
-                    <p><strong>${contractData.client_name}</strong>, a property/condominium association duly organized and registered under the laws of the State of <strong>${contractData.property_state}</strong>, with address at <strong>${contractData.property_address}, ${contractData.property_city}, ${contractData.property_state} ${contractData.property_zip_code}</strong>, hereinafter referred to as the <strong>"CLIENT"</strong>.</p>
+                    <p><strong>${contractData.client}</strong>, a property/condominium association duly organized and registered under the laws of the State of **${contractData.client_state}**, with address at <strong>${contractData.client_address}</strong>, hereinafter referred to as the <strong>"CLIENT"</strong>.</p>
 
                     <h3 class="text-white font-bold text-lg border-b border-gray-800 pb-2">DECLARATIONS</h3>
                     <ol class="list-decimal pl-5 space-y-2">
@@ -331,18 +269,18 @@
 
                     <h3 class="text-white font-bold text-lg border-b border-gray-800 pb-2">CLAUSES</h3>
                     
-                    <p><strong>FIRST – SCOPE OF THE CONTRACT:</strong> The SERVICE PROVIDER shall provide door-to-door waste collection services to all units and common areas of the property located at <strong>${contractData.property_address}, ${contractData.property_city}, ${contractData.property_state} ${contractData.property_zip_code}</strong> comprising <strong>${contractData.total_units}</strong> units, in accordance with the schedule, routes, and frequency agreed upon.</p>
+                    <p><strong>FIRST – SCOPE OF THE CONTRACT:</strong> The SERVICE PROVIDER shall provide door-to-door waste collection services to all units and common areas of the property located at <strong>${contractData.property}</strong> comprising <strong>${contractData.units}</strong> units, in accordance with the schedule, routes, and frequency agreed upon.</p>
 
-                    <p><strong>SECOND – DURATION:</strong> This contract shall have an initial duration of <strong>${contractData.initial_term_months}</strong> months/years, commencing on <strong>${formatDisplayDate(contractData.start_date)}</strong>. It shall automatically renew for equal periods unless written notice of non-renewal is provided at least <strong>${contractData.termination_notice_days}</strong> days in advance.</p>
+                    <p><strong>SECOND – DURATION:</strong> This contract shall have an initial duration of **${contractData.initial_term_months}** months/years, commencing on <strong>${formatDisplayDate(contractData.start_date)}</strong>. It shall automatically renew for equal periods unless written notice of non-renewal is provided at least **${contractData.termination_notice_days}** days in advance.</p>
 
-                    <p><strong>THIRD – FREQUENCY AND SCHEDULE:</strong> Waste collection will occur at a frequency of <strong>${contractData.service_frequency}</strong>. Collection hours are set between <strong>${contractData.service_window_start_time}</strong> and <strong>${contractData.service_window_end_time}</strong>. Holidays will be compensated according to a pre-communicated schedule.</p>
+                    <p><strong>THIRD – FREQUENCY AND SCHEDULE:</strong> Waste collection will occur at a frequency of <strong>${contractData.service_frequency}</strong>. Collection hours are set between **${contractData.service_window_start_time}** and **${contractData.service_window_end_time}**. Holidays will be compensated according to a pre-communicated schedule.</p>
 
                     <p><strong>FOURTH – OBLIGATIONS OF THE SERVICE PROVIDER:</strong>
                         <ul class="list-disc pl-5 space-y-2">
                             <li>Collect waste from all units and common areas according to the agreed schedule.</li>
                             <li>Provide necessary containers and equipment.</li>
                             <li>Maintain vehicles and equipment in optimal condition, complying with safety and environmental regulations.</li>
-                            <li>Provide monthly reports or upon request via the Service App (including photos of daily daily service).</li>
+                            <li>Provide monthly reports or upon request via the Service App (including photos of daily service).</li>
                         </ul>
                     </p>
 
@@ -354,16 +292,16 @@
                         </ul>
                     </p>
 
-                    <p><strong>SIXTH – PRICE AND PAYMENT TERMS:</strong> The agreed rate is <strong>${formatDisplayCurrency(contractData.monthly_rate)}</strong> per month. Billing occurs on the <strong>${contractData.billing_day_of_month}</strong> of each month. Payments are due within <strong>${contractData.payment_terms_days}</strong> days after the invoice date. Late payments may incur a monthly penalty fee.</p>
+                    <p><strong>SIXTH – PRICE AND PAYMENT TERMS:</strong> The agreed rate is <strong>${formatDisplayCurrency(contractData.monthly_rate)}</strong> per month. Billing occurs on the **${contractData.billing_day_of_month}** of each month. Payments are due within **${contractData.payment_terms_days}** after the invoice date. Late payments may incur a monthly penalty fee.</p>
 
                     <p><strong>SEVENTH – LIABILITY AND INSURANCE:</strong> The SERVICE PROVIDER shall be liable for direct damages caused by proven negligence. The SERVICE PROVIDER maintains general liability insurance, vehicle insurance, and workers' compensation as required by law.</p>
 
-                    <p><strong>EIGHTH – RESIDENT GRIEVANCE PROCEDURE:</strong> Residents may report issues directly to the CLIENT or via the Service Provider's reporting channel. SERVICE PROVIDER shall resolve incidents within a maximum period of <strong>${contractData.grievance_resolution_hours}</strong> hours.</p>
+                    <p><strong>EIGHTH – RESIDENT GRIEVANCE PROCEDURE:</strong> Residents may report issues directly to the CLIENT or via the Service Provider's reporting channel. SERVICE PROVIDER shall resolve incidents within a maximum period of **${contractData.grievance_resolution_hours}** hours.</p>
 
                     <p><strong>NINTH – EARLY TERMINATION:</strong> Either party may terminate the contract with written notice for breach of contract or non-payment.</p>
 
                     <div class="pt-8 border-t border-gray-800 text-xs text-gray-500 italic">
-                        By signing this digital document, both parties agree to the terms and conditions outlined above. This electronic acceptance constitutes a legally binding agreement for the property at <strong>${contractData.property_name}</strong>.
+                        By signing this digital document, both parties agree to the terms and conditions outlined above. This electronic acceptance constitutes a legally binding agreement for the property at <strong>${contractData.property}</strong>.
                     </div>
                 </div>
             `;
