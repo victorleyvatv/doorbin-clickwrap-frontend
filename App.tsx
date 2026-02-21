@@ -46,6 +46,17 @@ const App: React.FC = () => {
     }
   }, []);
 
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-6 bg-[#121212]">
+        <div className="flex flex-col items-center space-y-4">
+          <Loader2 className="w-12 h-12 text-[#ADFF2F] animate-spin" />
+          <p className="text-gray-400 animate-pulse">Loading agreement details...</p>
+        </div>
+      </div>
+    );
+  }
+
   const fetchData = async (id: string) => {
     try {
       const res = await fetch(`https://n8n.doorbinwaste.com/webhook/consultar-cotizacion?id=${id}`);
@@ -73,8 +84,8 @@ const App: React.FC = () => {
 
     setSubmitting(true);
     try {
-      // Use URLSearchParams to send data as application/x-www-form-urlencoded
-      // to match the original form submission behavior
+      console.log("Submitting acceptance for record:", recordId);
+      
       const formData = new URLSearchParams();
       formData.append('airtable_record_id', recordId);
       formData.append('accepted_at', new Date().toISOString());
@@ -88,18 +99,47 @@ const App: React.FC = () => {
         body: formData.toString(),
       });
 
+      console.log("Response status:", response.status);
+
       if (response.ok) {
         setSubmitted(true);
       } else {
-        throw new Error("Submission failed");
+        const errorText = await response.text();
+        console.error("Submission failed:", errorText);
+        throw new Error(`Submission failed with status ${response.status}`);
       }
     } catch (e) {
       console.error("Submission Error", e);
-      alert("There was an error submitting your acceptance. Please try again.");
+      alert(`Error: ${e instanceof Error ? e.message : 'Unknown error'}. Please try again or contact support.`);
     } finally {
       setSubmitting(false);
     }
   };
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-6">
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="max-w-md w-full bg-[#1a1a1a] p-10 rounded-3xl border border-red-900/50 text-center shadow-2xl"
+        >
+          <div className="flex justify-center mb-6">
+            <div className="w-20 h-20 bg-red-500/10 rounded-full flex items-center justify-center">
+              <ShieldCheck className="w-12 h-12 text-red-500" />
+            </div>
+          </div>
+          <h2 className="text-2xl font-bold mb-4 text-white">Access Error</h2>
+          <p className="text-gray-400 text-lg mb-8">
+            {error}
+          </p>
+          <p className="text-sm text-gray-500">
+            Please ensure you are using the correct link provided in your email.
+          </p>
+        </motion.div>
+      </div>
+    );
+  }
 
   if (submitted) {
     return (
