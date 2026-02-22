@@ -22,9 +22,16 @@ async function startServer() {
     }
 
     try {
-      // Changing to POST because n8n reports GET is not registered for this webhook
-      const response = await axios.post(`https://n8n.doorbinwaste.com/webhook/consultar-cotizacion`, 
-        { id: id }, 
+      console.log(`Proxying fetch for ID: ${id}`);
+      
+      // Sending ID in URL AND Body under multiple names to be extremely compatible
+      const response = await axios.post(`https://n8n.doorbinwaste.com/webhook/consultar-cotizacion?id=${id}`, 
+        { 
+          id: id,
+          "Property ID": id,
+          recordId: id,
+          airtable_record_id: id
+        }, 
         {
           headers: {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -33,7 +40,30 @@ async function startServer() {
           timeout: 10000
         }
       );
-      res.json(response.data);
+      
+      console.log("n8n Raw Response:", JSON.stringify(response.data, null, 2));
+      
+      let data = response.data;
+      
+      // 1. Handle Array
+      if (Array.isArray(data)) {
+        data = data[0];
+      }
+      
+      // 2. Handle common n8n/Airtable wrappers
+      if (data && data.body) data = data.body;
+      if (data && data.fields) data = data.fields;
+      if (data && data.data && typeof data.data === 'object' && !data.fields) data = data.data;
+      
+      // If we still have an array after unwrapping
+      if (Array.isArray(data)) data = data[0];
+
+      if (!data || Object.keys(data).length === 0) {
+        console.warn("n8n returned empty data for ID:", id);
+        return res.status(404).json({ error: "No data found for this ID in n8n/Airtable" });
+      }
+      
+      res.json(data);
     } catch (error: any) {
       console.error("Proxy Fetch Error:", error.message);
       const status = error.response?.status || 500;

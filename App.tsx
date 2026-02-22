@@ -42,14 +42,31 @@ const App: React.FC = () => {
         throw new Error(errorData.error || "Failed to fetch contract data");
       }
       const data = await res.json();
+      console.log("Final Processed Data:", data);
       
-      setContractData({
-        client: data.nombre_cliente || '[Client Pending]',
-        property: data.propiedad || '[Property Pending]',
-        units: data.unidades || '0',
-        rate: data.precio_mensual || '$0.00',
-        summary: data.detalle_servicio || 'Service details as specified.',
-      });
+      // The server already unwraps 'fields' or 'body', but we keep this for safety
+      const fields = data.fields || data;
+      
+      // Helper to find a field by multiple possible names
+      const getField = (names: string[], fallback: any) => {
+        for (const name of names) {
+          if (fields[name] !== undefined && fields[name] !== null) return fields[name];
+        }
+        return fallback;
+      };
+      
+      const newContractData = {
+        client: getField(['Primary Contact Name', 'nombre_cliente', 'Client Name', 'Client'], '[Client Pending]'),
+        property: getField(['Property Name', 'propiedad', 'Property', 'property'], '[Property Pending]'),
+        units: String(getField(['Total Number of Units', 'unidades', 'Units', 'units'], '0')),
+        rate: typeof getField(['Monthly Rate'], null) === 'number' 
+          ? `$${Number(getField(['Monthly Rate'], 0)).toLocaleString()}`
+          : String(getField(['precio_mensual', 'Rate', 'rate', 'Monthly Rate'], '$0.00')),
+        summary: getField(['Quote Summary', 'detalle_servicio', 'Summary', 'summary'], 'Service details as specified.'),
+      };
+
+      console.log("Setting Contract Data:", newContractData);
+      setContractData(newContractData);
     } catch (e) {
       console.error("Data Fetch Error", e);
       setError(e instanceof Error ? e.message : "Could not load contract details. Please try again later.");
