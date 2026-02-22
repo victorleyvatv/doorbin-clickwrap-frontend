@@ -34,6 +34,30 @@ const App: React.FC = () => {
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [authorized, setAuthorized] = useState(false);
 
+  const fetchData = async (id: string) => {
+    try {
+      const res = await fetch(`/api/contract?id=${id}`);
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || "Failed to fetch contract data");
+      }
+      const data = await res.json();
+      
+      setContractData({
+        client: data.nombre_cliente || '[Client Pending]',
+        property: data.propiedad || '[Property Pending]',
+        units: data.unidades || '0',
+        rate: data.precio_mensual || '$0.00',
+        summary: data.detalle_servicio || 'Service details as specified.',
+      });
+    } catch (e) {
+      console.error("Data Fetch Error", e);
+      setError(e instanceof Error ? e.message : "Could not load contract details. Please try again later.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const id = params.get('id');
@@ -57,27 +81,6 @@ const App: React.FC = () => {
     );
   }
 
-  const fetchData = async (id: string) => {
-    try {
-      const res = await fetch(`https://n8n.doorbinwaste.com/webhook/consultar-cotizacion?id=${id}`);
-      if (!res.ok) throw new Error("Failed to fetch contract data");
-      const data = await res.json();
-      
-      setContractData({
-        client: data.nombre_cliente || '[Client Pending]',
-        property: data.propiedad || '[Property Pending]',
-        units: data.unidades || '0',
-        rate: data.precio_mensual || '$0.00',
-        summary: data.detalle_servicio || 'Service details as specified.',
-      });
-    } catch (e) {
-      console.error("Data Fetch Error", e);
-      setError("Could not load contract details. Please try again later.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!acceptedTerms || !authorized || !recordId) return;
@@ -91,7 +94,7 @@ const App: React.FC = () => {
       formData.append('accepted_at', new Date().toISOString());
       formData.append('status', 'accepted');
 
-      const response = await fetch('https://n8n.doorbinwaste.com/webhook/consultar-cotizacion', {
+      const response = await fetch('/api/submit', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
