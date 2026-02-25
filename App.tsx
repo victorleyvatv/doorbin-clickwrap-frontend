@@ -50,7 +50,11 @@ const App: React.FC = () => {
       // Helper to find a field by multiple possible names
       const getField = (names: string[], fallback: any) => {
         for (const name of names) {
-          if (fields[name] !== undefined && fields[name] !== null) return fields[name];
+          const val = fields[name];
+          // Ignore internal error objects from Airtable/n8n (e.g. formula errors)
+          if (val !== undefined && val !== null && !(typeof val === 'object' && val.state === 'error')) {
+            return val;
+          }
         }
         return fallback;
       };

@@ -24,18 +24,10 @@ async function startServer() {
     try {
       console.log(`Proxying fetch for ID: ${id}`);
       
-      // Sending ID in URL AND Body under multiple names to be extremely compatible
-      const response = await axios.post(`https://n8n.doorbinwaste.com/webhook/consultar-cotizacion?id=${id}`, 
-        { 
-          id: id,
-          "Property ID": id,
-          recordId: id,
-          airtable_record_id: id
-        }, 
+      const response = await axios.get(`https://n8n.doorbinwaste.com/webhook/consultar-cotizacion?id=${id}`, 
         {
           headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-            'Content-Type': 'application/json'
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
           },
           timeout: 10000
         }
@@ -75,25 +67,25 @@ async function startServer() {
   // Proxy for submitting acceptance
   app.post("/api/submit", async (req, res) => {
     try {
-      // n8n expects form-urlencoded based on previous implementation
-      const params = new URLSearchParams();
-      for (const key in req.body) {
-        params.append(key, req.body[key]);
-      }
-
+      console.log("Submitting acceptance to n8n:", JSON.stringify(req.body));
+      
       const response = await axios.post(
-        "https://n8n.doorbinwaste.com/webhook/consultar-cotizacion",
-        params.toString(),
+        "https://n8n.doorbinwaste.com/webhook/aceptar-contrato",
+        req.body,
         {
           headers: {
-            "Content-Type": "application/x-www-form-urlencoded",
+            "Content-Type": "application/json",
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
           },
+          timeout: 15000
         }
       );
       res.status(response.status).send(response.data);
     } catch (error: any) {
       console.error("Proxy Submit Error:", error.message);
-      res.status(error.response?.status || 500).json({ error: "Failed to submit to n8n" });
+      const status = error.response?.status || 500;
+      const message = error.response?.data?.message || error.message || "Failed to submit to n8n";
+      res.status(status).json({ error: message });
     }
   });
 
