@@ -23,6 +23,7 @@ const App: React.FC = () => {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [alreadyAccepted, setAlreadyAccepted] = useState(false);
   const [contractData, setContractData] = useState<ContractData>({
     client: 'Loading...',
     property: 'Loading...',
@@ -71,6 +72,12 @@ const App: React.FC = () => {
 
       console.log("Setting Contract Data:", newContractData);
       setContractData(newContractData);
+
+      // Check if already accepted
+      const isAccepted = getField(['accepted', 'Accepted', 'aceptado'], false);
+      if (isAccepted === true || isAccepted === 'true' || isAccepted === 'Yes') {
+        setAlreadyAccepted(true);
+      }
     } catch (e) {
       console.error("Data Fetch Error", e);
       setError(e instanceof Error ? e.message : "Could not load contract details. Please try again later.");
@@ -139,6 +146,31 @@ const App: React.FC = () => {
       setSubmitting(false);
     }
   };
+
+  if (alreadyAccepted) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-6 bg-[#121212]">
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="max-w-md w-full bg-[#1a1a1a] p-10 rounded-3xl border border-yellow-900/30 text-center shadow-2xl"
+        >
+          <div className="flex justify-center mb-6">
+            <div className="w-20 h-20 bg-yellow-500/10 rounded-full flex items-center justify-center">
+              <ShieldCheck className="w-12 h-12 text-yellow-500" />
+            </div>
+          </div>
+          <h2 className="text-3xl font-bold mb-4 text-white">Agreement Already Signed</h2>
+          <p className="text-gray-400 text-lg mb-8">
+            This contract has already been accepted and processed. It cannot be modified or accepted again.
+          </p>
+          <div className="text-sm text-gray-500 uppercase tracking-widest">
+            Doorbin Waste Services LLC
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
 
   if (error) {
     return (
