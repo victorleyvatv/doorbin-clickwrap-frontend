@@ -50,6 +50,17 @@ async function startServer() {
       // If we still have an array after unwrapping
       if (Array.isArray(data)) data = data[0];
 
+      // Check for Airtable/n8n error objects at the top level or within the unwrapped data
+      const isError = (obj: any) => obj && (obj.state === 'error' || obj.errorType === 'emptyDependency');
+      
+      if (isError(data)) {
+        console.error("n8n/Airtable returned an error state:", data.errorType || data.state);
+        return res.status(422).json({ 
+          error: `Airtable Error: ${data.errorType || 'Incomplete data (emptyDependency)'}`,
+          details: data
+        });
+      }
+
       if (!data || Object.keys(data).length === 0) {
         console.warn("n8n returned empty data for ID:", id);
         return res.status(404).json({ error: "No data found for this ID in n8n/Airtable" });
@@ -69,12 +80,15 @@ async function startServer() {
     try {
       console.log("Submitting acceptance to n8n:", JSON.stringify(req.body));
       
+      // We use the production webhook as it's more stable, 
+      // but we ensure we handle the 404 gracefully if it's not active.
       const response = await axios.post(
         "https://n8n.doorbinwaste.com/webhook/aceptar-contrato",
         req.body,
         {
           headers: {
             "Content-Type": "application/json",
+            'Accept': 'application/json',
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
           },
           timeout: 15000
@@ -83,9 +97,12 @@ async function startServer() {
       res.status(response.status).send(response.data);
     } catch (error: any) {
       console.error("Proxy Submit Error:", error.message);
+      if (error.response) {
+        console.error("n8n Error Response:", JSON.stringify(error.response.data));
+      }
       const status = error.response?.status || 500;
       const message = error.response?.data?.message || error.message || "Failed to submit to n8n";
-      res.status(status).json({ error: message });
+      res.status(status).json({ error: message, details: error.response?.data });
     }
   });
 

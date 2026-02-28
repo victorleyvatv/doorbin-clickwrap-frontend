@@ -53,7 +53,9 @@ const App: React.FC = () => {
         for (const name of names) {
           const val = fields[name];
           // Ignore internal error objects from Airtable/n8n (e.g. formula errors)
-          if (val !== undefined && val !== null && !(typeof val === 'object' && val.state === 'error')) {
+          const isAirtableError = val && typeof val === 'object' && (val.state === 'error' || val.errorType === 'emptyDependency');
+          
+          if (val !== undefined && val !== null && !isAirtableError) {
             return val;
           }
         }
@@ -64,9 +66,15 @@ const App: React.FC = () => {
         client: getField(['Primary Contact Name', 'nombre_cliente', 'Client Name', 'Client'], '[Client Pending]'),
         property: getField(['Property Name', 'propiedad', 'Property', 'property'], '[Property Pending]'),
         units: String(getField(['Total Number of Units', 'unidades', 'Units', 'units'], '0')),
-        rate: typeof getField(['Monthly Rate'], null) === 'number' 
-          ? `$${Number(getField(['Monthly Rate'], 0)).toLocaleString()}`
-          : String(getField(['precio_mensual', 'Rate', 'rate', 'Monthly Rate'], '$0.00')),
+        rate: (() => {
+          const rateVal = getField(['Values to Update', 'Monthly Rate', 'precio_mensual', 'Rate', 'rate'], null);
+          if (rateVal === null) return '$0.00';
+          if (typeof rateVal === 'number') return `$${rateVal.toLocaleString()}`;
+          if (typeof rateVal === 'string' && !isNaN(Number(rateVal.replace(/[^0-9.]/g, '')))) {
+            return `$${Number(rateVal.replace(/[^0-9.]/g, '')).toLocaleString()}`;
+          }
+          return String(rateVal);
+        })(),
         summary: getField(['Quote Summary', 'detalle_servicio', 'Summary', 'summary'], 'Service details as specified.'),
       };
 
@@ -174,7 +182,7 @@ const App: React.FC = () => {
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-6">
+      <div className="min-h-screen flex items-center justify-center p-6 bg-[#121212]">
         <motion.div 
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -185,12 +193,16 @@ const App: React.FC = () => {
               <ShieldCheck className="w-12 h-12 text-red-500" />
             </div>
           </div>
-          <h2 className="text-2xl font-bold mb-4 text-white">Access Error</h2>
+          <h2 className="text-2xl font-bold mb-4 text-white">
+            {error.includes('emptyDependency') ? "Incomplete Data" : "Access Error"}
+          </h2>
           <p className="text-gray-400 text-lg mb-8">
-            {error}
+            {error.includes('emptyDependency') 
+              ? "The contract data in Airtable contains incomplete information (emptyDependency). Please check the record fields."
+              : error}
           </p>
           <p className="text-sm text-gray-500">
-            Please ensure you are using the correct link provided in your email.
+            Please ensure you are using the correct link or contact support if the issue persists.
           </p>
         </motion.div>
       </div>
