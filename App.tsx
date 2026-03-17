@@ -14,6 +14,9 @@ interface ContractData {
   units: string;
   rate: string;
   summary: string;
+  promoCode?: string | null;
+  originalPrice?: string | null;
+  finalPrice?: string | null;
 }
 
 const App: React.FC = () => {
@@ -62,7 +65,7 @@ const App: React.FC = () => {
         return fallback;
       };
       
-      const newContractData = {
+      const newContractData: ContractData = {
         client: getField(['contact_name', 'nombre_cliente', 'Client Name', 'Client'], '[Client Pending]'),
         property: getField(['name', 'propiedad', 'Property', 'property'], '[Property Pending]'),
         units: String(getField(['units', 'unidades', 'Units'], '0')),
@@ -76,6 +79,17 @@ const App: React.FC = () => {
           return String(rateVal);
         })(),
         summary: getField(['service_frequency', 'detalle_servicio', 'Summary', 'summary'], 'Service details as specified.'),
+        promoCode: getField(['promo_code'], null),
+        originalPrice: (() => {
+          const val = getField(['original_price'], null);
+          if (val === null) return null;
+          return typeof val === 'number' ? `$${val.toLocaleString()}` : String(val);
+        })(),
+        finalPrice: (() => {
+          const val = getField(['final_price'], null);
+          if (val === null) return null;
+          return typeof val === 'number' ? `$${val.toLocaleString()}` : String(val);
+        })(),
       };
 
       console.log("Setting Contract Data:", newContractData);
@@ -376,7 +390,19 @@ const App: React.FC = () => {
                 <p><b>3.1 Initial Term:</b> This Agreement shall commence on the date of electronic acceptance and remain in full force for an initial period of twelve (12) months. This contract will automatically renew for successive twelve-month periods unless written notice of non-renewal is provided at least thirty (30) days prior to the expiration date.</p>
 
                 <h3>IV. FINANCIAL TERMS</h3>
-                <p><b>4.1 Monthly Rate:</b> The CLIENT agrees to pay a fixed monthly service fee of <b>{contractData.rate}</b>. Invoices will be generated on the first (1st) day of each month for the current month's service.</p>
+                <p><b>4.1 Monthly Rate:</b> The CLIENT agrees to pay a fixed monthly service fee of <b>
+                  {contractData.promoCode ? (
+                    <span className="inline-flex items-center space-x-2">
+                      <span className="line-through text-gray-500">{contractData.originalPrice || contractData.rate}</span>
+                      <span className="text-[#ADFF2F]">{contractData.finalPrice}</span>
+                      <span className="text-[10px] bg-[#ADFF2F]/10 text-[#ADFF2F] px-2 py-0.5 rounded-full border border-[#ADFF2F]/20 ml-2 not-italic">
+                        PROMO: {contractData.promoCode}
+                      </span>
+                    </span>
+                  ) : (
+                    contractData.rate
+                  )}
+                </b>. Invoices will be generated on the first (1st) day of each month for the current month's service.</p>
                 <p><b>4.2 Payments:</b> All payments are due within fifteen (15) calendar days from the invoice date. Late payments may be subject to a monthly interest penalty of <b>5.0%</b> on the outstanding balance.</p>
 
                 <h3>V. INDEMNIFICATION AND LIABILITY</h3>
