@@ -63,11 +63,11 @@ const App: React.FC = () => {
       };
       
       const newContractData = {
-        client: getField(['Primary Contact Name', 'nombre_cliente', 'Client Name', 'Client'], '[Client Pending]'),
-        property: getField(['Property Name', 'propiedad', 'Property', 'property'], '[Property Pending]'),
-        units: String(getField(['Total Number of Units', 'unidades', 'Units', 'units'], '0')),
+        client: getField(['contact_name', 'nombre_cliente', 'Client Name', 'Client'], '[Client Pending]'),
+        property: getField(['name', 'propiedad', 'Property', 'property'], '[Property Pending]'),
+        units: String(getField(['units', 'unidades', 'Units'], '0')),
         rate: (() => {
-          const rateVal = getField(['Values to Update', 'Monthly Rate', 'precio_mensual', 'Rate', 'rate'], null);
+          const rateVal = getField(['monthly_rate', 'precio_mensual', 'Rate', 'rate'], null);
           if (rateVal === null) return '$0.00';
           if (typeof rateVal === 'number') return `$${rateVal.toLocaleString()}`;
           if (typeof rateVal === 'string' && !isNaN(Number(rateVal.replace(/[^0-9.]/g, '')))) {
@@ -75,14 +75,20 @@ const App: React.FC = () => {
           }
           return String(rateVal);
         })(),
-        summary: getField(['Quote Summary', 'detalle_servicio', 'Summary', 'summary'], 'Service details as specified.'),
+        summary: getField(['service_frequency', 'detalle_servicio', 'Summary', 'summary'], 'Service details as specified.'),
       };
 
       console.log("Setting Contract Data:", newContractData);
       setContractData(newContractData);
 
+      // Update recordId if airtable_record_id is present in the response
+      const airtableId = getField(['airtable_record_id', 'record_id'], null);
+      if (airtableId) {
+        setRecordId(airtableId);
+      }
+
       // Check if already accepted
-      const isAccepted = getField(['accepted', 'Accepted', 'aceptado'], false);
+      const isAccepted = getField(['contract_accepted', 'accepted', 'Accepted', 'aceptado'], false);
       if (isAccepted === true || isAccepted === 'true' || isAccepted === 'Yes') {
         setAlreadyAccepted(true);
       }
@@ -125,17 +131,18 @@ const App: React.FC = () => {
     try {
       console.log("Submitting acceptance for record:", recordId);
       
-      const formData = new URLSearchParams();
-      formData.append('airtable_record_id', recordId);
-      formData.append('accepted_at', new Date().toISOString());
-      formData.append('status', 'accepted');
+      const payload = {
+        airtable_record_id: recordId,
+        accepted_at: new Date().toISOString(),
+        status: 'accepted'
+      };
 
       const response = await fetch('/api/submit', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
+          'Content-Type': 'application/json',
         },
-        body: formData.toString(),
+        body: JSON.stringify(payload),
       });
 
       console.log("Response status:", response.status);
