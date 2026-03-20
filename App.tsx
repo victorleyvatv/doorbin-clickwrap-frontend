@@ -66,7 +66,7 @@ const App: React.FC = () => {
       };
       
       const newContractData: ContractData = {
-        client: getField(['contact_name', 'nombre_cliente', 'Client Name', 'Client'], '[Client Pending]'),
+        client: getField(['lmcn', 'contact_name', 'nombre_cliente', 'Client Name', 'Client'], '[Client Pending]'),
         property: getField(['name', 'propiedad', 'Property', 'property'], '[Property Pending]'),
         units: String(getField(['units', 'unidades', 'Units'], '0')),
         rate: (() => {
@@ -102,8 +102,19 @@ const App: React.FC = () => {
       }
 
       // Check if already accepted
-      const isAccepted = getField(['contract_accepted', 'accepted', 'Accepted', 'aceptado'], false);
-      if (isAccepted === true || isAccepted === 'true' || isAccepted === 'Yes') {
+      const isAccepted = getField(['accepted', 'contract_accepted', 'Accepted', 'aceptado'], false);
+      const isTruthy = (val: any) => 
+        val === true || 
+        val === 'true' || 
+        val === 'Yes' || 
+        val === 'yes' || 
+        val === 1 || 
+        val === '1' || 
+        val === 'si' || 
+        val === 'Si' ||
+        val === 'SI';
+
+      if (isTruthy(isAccepted)) {
         setAlreadyAccepted(true);
       }
     } catch (e) {
